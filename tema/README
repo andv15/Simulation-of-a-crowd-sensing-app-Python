@@ -1,0 +1,52 @@
+
+Arhitectura sistemelor de calcul
+Tema 1
+Martie 2016
+
+SONEA Andreea 333CB
+
+
+	Pentru rezolvare am folosit:
+	- o bariera reentranta cu doua semafoare pusa la sfarsitul fiecarei
+	iteratii pentru ca thread-urile master sa treaca impreuna in urmatorul
+	timepoint
+	- lock-uri pentru fiecare locatie: atunci cand un thread trebuie sa
+	modifice datele pentru o locatie, niciun alt thread nu va putea modifica
+	sau citi date pentru acea locatie
+	- un event: pentru a semnala cand au fost primite toate script-urile pentru
+	timepoint-ul curent pe device
+
+
+	Device:
+	- toate device-urile au bariera reentranta comuna si lista de lock-uri
+	comuna pentru fiecare locatie
+	- device-ul 0 va crea bariera si lista de lock-uri si le va distribui
+	tuturor device-urilor in setup_devices
+	- fiecare device are un thread master. Dupa distribuirea a barierei si
+	lock-urilor, device-ul 0 va porni thread-ul master al fiecarui device
+	- primirea de scripturi: device-ul adauga script-urile primite in lista.
+	Atunci cand toate script-urile au fost primite (se primeste None) anunta
+	thread-urile master ca pot incepe rularea script-urilor (prin evenimentul
+	script_received)
+
+
+	DeviceThread:
+	- thread-ul master al device-ului
+	- la fiecare timepoint:
+		- afla vecinii
+		- asteapta primirea tuturor	script-urilor
+		- creaza cate un thread worker pentru fiecare script
+		- porneste thread-urile worker si asteapta ca acestea sa termine
+		- reinitializeaza lista de workeri
+		- bariera pentru ca toate thread-urile master sa treaca impreuna
+	la urmatorul timepoint
+
+
+	Worker:
+	- thread ce ruleaza script-uri
+	- pentru rezolvare:
+		- acapareaza lock-ul pentru locatia primita
+		- colecteaza date de la vecini pentru locatie si datele proprii
+		- ruleaza script-ul pe datele colectate
+		- actualizeaza datele vecinilor si cele proprii pentru locatie
+		- elibereaza lock-ul pentru locatia primita
